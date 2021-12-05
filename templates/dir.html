@@ -1,4 +1,7 @@
 <h3><q>{{filename}}</q></h3>
-{%for i in r%}
-<a href="{{base+i}}">{{i}}</a><br>
+{%for i in tree%}
+<a href="{{base+i.item.name}}">{{i.item.name}}{{'/' if i.istree else ''}}</a><br>
 {%endfor%}
+<br><br>
+<p style="color:green;">
+<a href="{{b+'?view=commits'}}">Show commits</a></p>
