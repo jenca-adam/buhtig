@@ -1,0 +1,8 @@
+<H1>Commits for repo "{{reponame}}"</h1>
+<table>
+  {%for i in commits%}
+  
+  <tr><td style="padding:2px;"><a href="{{base}}?commit={{i.id}}">{{i.name}}</a><p>Commited by {{i.commiter}} on {{i.date}}</p></td></tr>
+  
+  {%endfor%}
+</table>
