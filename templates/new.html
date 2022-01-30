@@ -1,0 +1,8 @@
+<h1>New repo</h1>
+<form action="/new/"method="POST">
+  <p>Repo Name: <input name="name"></input></p>
+  <input type="submit"></input>
+  {%if wrong%}
+  Repo already exists.
+  {%endif%}
+</form>

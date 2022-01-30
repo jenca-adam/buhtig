@@ -1,0 +1,19 @@
+<form action="/signup/" method="POST">
+  <p>User name:<input type="text" name="uname" id="uname"></input></p>
+  <p>Password:<input type="password"name="pw"id="pw"></input></p>
+  <p>First name:<input type="text" name="fn" id="fn"></input></p>
+  <p>Last name:<input type="text" name="ln" id="ln"></input></p>
+  <p>E-Mail:<input type="email" name="email" id="email"></input></p>
+  <input type="submit"></input>
+</form>
+<p style="color:red;" id="ms"></p>
+<script>
+var msg="{{msg}}"
+var select="{{on}}"
+if(msg&&select){
+    var el=document.getElementById(select);
+    el.focus()
+    el.outerHTML+="<span style=\"color:red;\">!!</span>"
+    document.getElementById("ms").innerText=msg
+  }
+</script>

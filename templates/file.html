@@ -1,9 +1,29 @@
+
 <h3><q>{{filename}}</q></h3>
-<div><b><a href="{{base}}?commit={{commit.id}}">{{commit.name}}</a></b> commited {{commit.ago}} by {{commit.commiter}}<div>
+<div><b><a href="{{b}}?commit={{commit.id}}">{{commit.name}}</a></b> commited {{commit.ago}} by {{commit.commiter}}<div>
 <pre>
 <code>
 {{content}}
+<a class="download-link" href="{{base+'?download'}}">Download</a>
 <code>
 </pre>
 <p style="color:green;">
 <a href="{{b+'?view=commits'}}">Show commits</a></p>
+<script>
+  function download(url, filename=null) {
+    if(filename===null){
+        filename=url.split("/").at(-1).split("?")[0].split("#")[0].split("/")[0]
+      }
+  fetch(url)
+    .then(response => response.blob())
+    .then(blob => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+  })
+  .catch(console.error);
+}
+  document.querySelector(".download-link").addEventListener('click',function(e){download(this.getAttribute('href'));e.preventDefault()},false)
+</script>
+
