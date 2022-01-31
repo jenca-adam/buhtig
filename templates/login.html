@@ -1,6 +1,10 @@
+{%extends 'base.html'%}
+{%block title%}Login{%endblock%}
+{%block body%}
 <form action="/login/" method="POST">
   <p>Username:<input name="username"></input></p>
   <p>Password: <input name="pw" type="password"></input></p>
-  {%if wrong%}<p><b style="color:red;">Invalid username or password!!</b></p>{%endif%}
+  {%if wrong%}<p id="wrong"><b style="color:red;">Invalid username or password!!</b></p>{%endif%}
   <input type="submit"></input>
 </form>
+{%endblock%}

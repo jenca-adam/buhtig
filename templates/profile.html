@@ -1,0 +1,9 @@
+{%extends 'base.html'%}
+{%block title%}Your Profile{%endblock%}
+{%block body%}Logged in as <em><b>{{user.uname}}</b></em>
+<h2>My repos</h2>
+<ul>
+  {%for i in repos%}
+  <li><a href={{"/"+user.uname+"/"+i.name}}>{{i.name}}</a></li>
+  {%endfor%}
+{%endblock%}

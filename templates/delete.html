@@ -1,0 +1,12 @@
+{%extends "base.html"%}
+{%block title%}Delete repo {{repo}} {%endblock%}
+{% block body %}
+  <div id="dialog">
+  <strong>Are you sure you want to delete repo {{repo}}?</strong>
+      <p><em class="shout">This action can not be undone!</em></p>
+      <form action="/delete/{{repo}}" method="POST">
+        <p><input type="submit" class="red" text="Delete"></input>&nbsp;&nbsp;&nbsp;<a href="/{{repo}}" class="button">Don't delete</a></p>
+      </form>
+  </div>
+
+{%endblock%}

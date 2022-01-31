@@ -11,7 +11,7 @@ from dulwich.pack import PackStreamReader
 import subprocess, os.path
 from flask_httpauth import HTTPBasicAuth
 import hashlib
-import tempfile
+import shutil
 auth = HTTPBasicAuth()
 TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 app=Flask(__name__)
@@ -20,16 +20,19 @@ app.secret_key=b'A\xde57~~~\xea\xdd\xdd\xdd\xea\xea\xaa\xda\xee\xff\xee\xaa[we[]
 
 class UnamEr(Exception):pass
 class EmEr(Exception):pass
+
 def sha224(t):
     return hashlib.sha224(t.encode()).hexdigest()
 
 def tznow():
     return datetime.datetime.now().replace(tzinfo=TIMEZONE)
+
 class GItem:
     def __init__(self,item):
         self.istree=isinstance(item,git.Tree)
         self.isblob=isinstance(item,git.Blob)
         self.item=item
+
 class GitCommit:
     def __init__(self,commit):
         self.name=commit.summary
@@ -46,24 +49,45 @@ def find_last(gf,pth):
                 return GitCommit(i)
 def makeUser():
     return models.user_by_uname(session['user'])[0]
+getUser=makeUser
+@app.route('/logout/')
+def logout():
+    session['logged']=False
+    del session['user']
+    return redirect('/login/')
+#TODO:Allow admins to read other users' profiles
+@app.route('/profile/<string:user>')
+def aprof(user):
+    if session.get('user')==user:
+        return redirect('/profile/')
+
+    if not isAdmin():
+        abort(403)
+    dbust=list(models.user_by_uname(user))
+    if not dbust:
+        abort(404)
+    dbust=dbust[0]
+    
+    return templatize('admin-profile.html',user=dbust,repos=models.repos_by_uname(user))
+
 @app.route('/profile/')
 def profile():
     print(session.get('logged'))
     if not session.get('logged'):return redirect('/login/')
-    return '<html><h1>Logged in as'+makeUser().uname+'</h1></html>'
+    return templatize('profile.html',user=makeUser(),repos=models.repos_by_uname(session['user']))
 @app.route('/new/',methods=['GET','POST'])
 def new():
     if not session.get('logged'):return redirect('/login/')
     if request.method=='POST':
         if os.path.exists('./repos/'+makeUser().uname+'/'+request.form['name']):
-            return render_template('new.html',wrong=True)
+            return templatize('new.html',wrong=True)
         bareinitpopen=subprocess.Popen(['git', 'init','--bare','./repos/'+makeUser().uname+'/'+request.form['name']],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         bareinitpopen.wait()
         dbrepo=models.Repo(name=request.form['name'],owner=makeUser().id,visible=False,allowed='')
         models.session.add(dbrepo)
         models.session.commit()
-        return redirect('/repo/'+makeUser().uname+'/'+request.form['name'])
-    return render_template('new.html',wrong=False)
+        return redirect('/'+makeUser().uname+'/'+request.form['name'])
+    return templatize('new.html',wrong=False)
 
 @app.route('/login/',methods=['GET','POST'])
 def login():
@@ -76,12 +100,53 @@ def login():
             session['user']=request.form['username']
             return redirect('/profile')
         print('AT login() Invalid PASSWORD')
-        return render_template('login.html',invalid=True)
-    return render_template('login.html',invalid=False)
-@app.route('/repo/<string:user>/<string:name>/')
-@app.route('/repo/<string:user>/<string:name>/<path:additional>')
+        return templatize('login.html',invalid=True)
+    return templatize('login.html',invalid=False)
+def isAdmin():
+    try:
+        u=makeUser()
+    except:
+        return False
+    return u.admin
+def templatize(fn,**kwargs):
+    return render_template(fn,session=session,**kwargs)
+@app.route('/delete/<path:repo>',methods=['GET','POST'])
+def delete(repo):
+    try:
+        x=makeUser()
+    except:
+        abort(403)
+    if repo.endswith('/'):
+        repo=repo[:-1]
+    dbrepo=models.repo_by_strid(repo)
+    if not list(dbrepo):
+        abort(404)
+    dbrepo=dbrepo[0]
+
+    if not x.admin and x.id!=dbrepo.owner:
+        abort(403)
+    if request.method=='POST':
+        models.session.delete(dbrepo)
+        models.session.commit()
+        shutil.rmtree('repos/'+repo)
+        return redirect('/profile/')
+    return render_template('delete.html',repo=repo)
+@app.route('/<string:user>/<string:name>/')
+@app.route('/<string:user>/<string:name>/<path:additional>')
 def repo(user,name,additional=''):
-    
+    try:
+        dbrepo=models.repo_by_strid('/'.join([user,name]))[0]
+
+    except:
+        abort(404)
+    if not dbrepo:
+        abort(404)
+    try:
+        getUser()
+    except:
+        abort(403)
+    if getUser().id!=dbrepo.owner and not getUser().admin:
+        abort(403)
     if additional.startswith('?'):
         additional=''
     print(additional)
@@ -91,8 +156,8 @@ def repo(user,name,additional=''):
 
     gf=git.Repo(rp)
     if not gf.active_branch.is_valid():
-        return render_template('dir.html',tree=[],base=f'/repo/{user}/{name}/{additional}/',filename='/',commit=None,b=None)
-    rep='/repo/'+user+'/'+name+'/'
+        return templatize('dir.html',tree=[],base='/'+'/'.join([user,name,additional]),b='/'+'/'.join([user,name,additional]),filename='/',commit=None)
+    rep='/'+user+'/'+name+'/'
     to_view=request.args.get('view','base')
     if to_view=='base':
         if 'commit' in request.args:
@@ -109,7 +174,7 @@ def repo(user,name,additional=''):
         csd=GitCommit(csd)
         print(list(trees))
         if not additional:
-            return render_template('dir.html',tree=(GItem(ttr) for ttr in trees),base=f'/repo/{user}/{name}/{additional}/',filename='/',b=rep,commit=csd)
+            return templatize('dir.html',tree=(GItem(ttr) for ttr in trees),base=f'/{user}/{name}/{additional}/',filename='/',b=rep,commit=csd)
 
         x=additional.split('/')
         for ixm,i in enumerate(x):
@@ -128,16 +193,16 @@ def repo(user,name,additional=''):
                     try:
                         content=content.decode(chardet.detect(content)['encoding'])
                     except:
-                         return render_template('file.html',content="Binary File!",filename=n.path,b=rep,commit=find_last(gf,n.path),base=f'/repo/{user}/{name}/{additional}')
+                         return templatize('file.html',content="Binary File!",filename=n.path,b=rep,commit=find_last(gf,n.path),base=f'/{user}/{name}/{additional}')
 
-                    return render_template('file.html',content=content,filename=n.path,b=rep,commit=find_last(gf,n.path) ,base=f'/repo/{user}/{name}/{additional}')
+                    return templatize('file.html',content=content,filename=n.path,b=rep,commit=find_last(gf,n.path) ,base=f'/{user}/{name}/{additional}')
 
                 else:
                     abort(404)
             elif isinstance(n,git.Tree):
                 if ixm==len(x)-1:
 
-                    return render_template('dir.html',tree=(GItem(ttr) for ttr in n),base=f'/repo/{user}/{name}/{additional}/',filename=n.path,b=rep,commit=find_last(gf,n.path))
+                    return templatize('dir.html',tree=(GItem(ttr) for ttr in n),base=f'/{user}/{name}/{additional}/',filename=n.path,b=rep,commit=find_last(gf,n.path))
                 else:
                     trees=n
         abort(404)
@@ -146,19 +211,21 @@ def repo(user,name,additional=''):
         for  i in gf.iter_commits():
             comts.append(GitCommit(i))
             print('Analyzed '+str(i))
-        return render_template('commits.html',reponame=f'{user}/{name}',base=f'/repo/{user}/{name}/',commits=comts)
+        return templatize('commits.html',reponame=f'{user}/{name}',base=f'/{user}/{name}/',commits=comts)
 @app.route('/signup/',methods=['GET','POST'])
 def signup():
     if request.method=='POST':
         f=request.form
         try:
-            new_user(**f)
+            new_user(**f,fromform=True)
         except UnamEr:
-            return render_template("signup.html",msg="Username already exists.",on="uname")
+            return templatize("signup.html",msg="Username already exists.",on="uname")
         except EmEr:
-            return render_template("signup.html",msg="Username already exists.",on="email")
+            return templatize("signup.html",msg="Username already exists.",on="email")
+        except:
+            return templatize("signup.html")
         return "Success"
-    return render_template("signup.html",msg="",on="")
+    return templatize("signup.html",msg="",on="")
 @auth.verify_password
 def ver_pw(username,pw):
     print("VERIFY")
@@ -167,17 +234,42 @@ def ver_pw(username,pw):
     if not list(us):
         return False
     return us[0].pw==sha224(pw)
-def new_user(uname,pw,fn,ln,email):
+def new_user(uname,pw,fn,ln,email,admin=False,fromform=False):
+    if admin.lower() in ['true','1']:
+        admin=True
+    else:
+        admin=False
+    if admin and fromform:
+        raise Exception
     if  tuple(models.user_by_uname(uname)):
         raise UnamEr
     if tuple(models.user_by_email(email)):
-        raise EmEr
-    models.session.add(models.User(uname=uname,pw=sha224(pw),fname=fn,lname=ln,email=email,admin=False))
+        raise EmEri
+
+    models.session.add(models.User(uname=uname,pw=sha224(pw),fname=fn,lname=ln,email=email,admin=admin))
     models.session.commit()
     os.mkdir("./repos/"+uname)
+@app.route('/api/addUser/',methods=['POST'])
+@auth.login_required
+def APIAddUser():
+    if not models.user_by_uname(request.authorization.username)[0].admin:
+        abort(403)
+    try:
+        new_user(**request.form,fromform=False)
+    except UnamEr:
+        return Response('{status:"error",message:"User with username given already exists"}',status=409,mimetype="application/json")
+    except EmEr:
+        return Response('{status:"error",message:"User with e-mail given already exists"}',status=409,mimetype="application/json")
+    except Exception as e:
+        return Response(f'{{status:"error",message:"{str(e)}"}}', status=422 ,mimetype="application/json")
+    return Response('{status:"success",message:"User successfully created"}',mimetype="application/json")
+
+
+
 @app.route('/<path:project_name>/info/refs')
 @auth.login_required
 def info_refs(project_name):
+
     if request.authorization.username != project_name.split('/')[0] and not models.user_by_uname(request.authorization.username)[0].admin:
         abort(401)
     project_name='./repos/'+project_name
@@ -215,7 +307,6 @@ def git_receive_pack(project_name):
     
     p = subprocess.Popen(['git-receive-pack','--stateless-rpc', project_name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     data_in = request.data
-    print(data_in)
     try:
         pack_file = data_in[data_in.index(b'PACK'):]
     except:
@@ -251,4 +342,4 @@ def git_upload_pack(project_name):
     return res
 
 if __name__=='__main__':        
-    app.run(debug=True)    
+    app.run(debug=True,port=5000)    

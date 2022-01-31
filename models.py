@@ -27,3 +27,14 @@ def user_by_uname(un):
     return session.query(User).filter(User.uname==un)
 def user_by_email(em):
     return session.query(User).filter(User.email==em)
+def repo_by_strid(strid):
+    user,name=strid.split('/')
+    try:
+        return session.query(Repo).filter(Repo.owner==user_by_uname(user)[0].id).filter(Repo.name==name)
+    except IndexError:
+        return None
+def repos_by_uname(uname):
+    try:
+        return session.query(Repo).filter(Repo.owner==user_by_uname(uname)[0].id)
+    except IndexError:
+        return []

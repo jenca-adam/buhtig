@@ -1,0 +1,88 @@
+*{
+font-family:"Open Sans","Droid Sans","Trebuchet MS","Ariel",helvetica,sans-serif;
+}
+body{
+	background:radial-gradient(circle at center, rgba(50,50,50) 0%, rgba(20,20,20,1) 35%, rgba(0,0,0,1) 100%);
+	background-color:#000;
+	color:#fef;
+	
+
+}
+button,input[type="submit"],.button,a.button:visited{
+	border:solid 1px #fff;
+	padding:5px;
+	text-decoration:none;
+	background:#0a0;
+	color:white;
+	border-radius:5%;
+	display:inline-block;
+
+}
+header{
+	padding:10px;
+	margin:10px;
+}
+button:hover,input[type="submit"]:hover{
+	background:#00a !important;
+}
+a{
+	color:#dd0;
+}
+.red{
+	background:#a00 !important;
+}
+#wrong{
+	color:#d22;
+}
+a:visited{
+	color:#add;
+}
+nav{
+	background:#000;
+	display:block;
+	position:fixed;
+	top:0;
+	left:0;
+	width:100vw;
+	height:5vh;
+}
+pre code{
+	margin-left:2%;
+	width:90vw;
+	height:22em;
+	overflow:scroll;
+	
+}
+nav ul{
+	list-style-type:none;
+	margin:0;
+	padding:0;
+}
+nav ul li{
+	display:inline-block;
+	padding:10px;
+	float:left;
+}
+nav ul li a,nav ul li a:visited{
+	color:#fff;
+	text-decoration:none;
+	transition:all 0s ease-in-out;
+}
+nav ul li:hover{
+	background:#0a0;
+}
+main{
+	top:5%;
+	padding:10px;
+	position:absolute;
+}
+nav ul li.active{
+	background:#a00;
+}
+.shout{
+	text-transform:uppercase;
+}
+#dialog{
+	border:2px solid white;
+	padding:5px;
+}

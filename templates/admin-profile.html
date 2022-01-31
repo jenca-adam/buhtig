@@ -1,0 +1,11 @@
+{%extends "base.html"%}
+{%block title%}{{user.uname}}'s profile{%endblock%}
+{%block body%}
+<h1>{{user.uname}}'s profile</h1>
+<h3>{{user.uname}}'s repos</h3>
+<ul>
+  {%for i in repos%}
+  <li><a href={{"/"+user.uname+"/"+i.name}}>{{i.name}}</a></li>
+  {%endfor%}
+</ul>
+{%endblock%}

@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <title>{%block title%}{%endblock%} - BuhTig</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="author" href="https://jenca-adam.github.io/">
+    <link rel="shortcut icon" href="/static/favicon.png">
+    <link rel="stylesheet" href="/static/highlight/styles/atom-one-dark.min.css">
+    <script src="/static/highlight/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+  </head>
+  <body>
+    <nav>
+      <ul>
+        {% if session.get('logged') %}
+        <li><a href="/new/">New Repo</a></li>
+        <li><a href="/profile/">View Profile</a></li>
+        <li><a href="/logout/">Log Out</a></li>
+        {%else%}
+        <li><a href="/signup/">Sign up</a></li>
+        <li><a href="/login/">Log in</a></li>
+        {%endif%}
+              </ul>
+    </nav>
+    <main>
+    {%block body%}
+    {%endblock%}
+    <script src="/static/navbar.js"></script>
+    </main>
+  </body>
+</html>

@@ -1,3 +1,6 @@
+{%extends "base.html"%}
+{%block title%}Commits for repo "{{reponame}}"{%endblock%}
+{%block body%}
 <H1>Commits for repo "{{reponame}}"</h1>
 <table>
   {%for i in commits%}
@@ -6,3 +9,4 @@
   
   {%endfor%}
 </table>
+{%endblock%}

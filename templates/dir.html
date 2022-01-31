@@ -1,8 +1,15 @@
+{%extends "base.html"%}
+{%block title%}
+{{base+filename}}
+{%endblock%}
+{%block body%}
 <header style="padding:10px; padding-left:15px;">
-  <h3><q>{{filename}}</q></h3>
-  <br>
+
+  <p><a href="{{b}}">{{b}}</a>/<h3><q>{{filename}}</q></h3></p>
+  <a href="/delete{{b}}" class="button red">Delete Repo</a>
 
   <div>{% if tree %}<b><a href="{{b}}?commit={{commit.id}}">{{commit.name}}</a></b> commited {{commit.ago}} by {{commit.commiter}}<div>
+
 </header>
 {%for i in tree%}
 <a href="{{base+i.item.name}}">{{i.item.name}}{{'/' if i.istree else ''}}</a><br>
@@ -11,3 +18,4 @@
 <p style="color:green;">
 <a href="{{b+'?view=commits'}}"style="color:green;">Show commits</a></p>
 {%else%}<b> No commits... Yet!</b>{%endif%}
+{%endblock%}

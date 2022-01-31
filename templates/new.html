@@ -1,8 +1,15 @@
+{%extends 'base.html'%}
+{%block title%}Title{%endblock%}
+{%block body%}
 <h1>New repo</h1>
 <form action="/new/"method="POST">
   <p>Repo Name: <input name="name"></input></p>
-  <input type="submit"></input>
   {%if wrong%}
-  Repo already exists.
+  <p id="wrong">
+    Repo already exists.
+  </p>
   {%endif%}
-</form>
+
+  <input type="submit"></input>
+  </form>
+{%endblock%}
