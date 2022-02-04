@@ -61,6 +61,7 @@ def logout():
     session['logged']=False
     del session['user']
     return redirect('/login/')
+
 #TODO:Allow admins to read other users' profiles
 @app.route('/profile/<string:user>')
 def aprof(user):
