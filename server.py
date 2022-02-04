@@ -258,7 +258,7 @@ def new_user(uname,pw,fn,ln,email,admin=False,fromform=False):
     if  tuple(models.user_by_uname(uname)):
         raise UnamEr
     if tuple(models.user_by_email(email)):
-        raise EmEri
+        raise EmEr
 
     models.session.add(models.User(uname=uname,pw=sha224(pw),fname=fn,lname=ln,email=email,admin=admin))
     models.session.commit()
