@@ -12,6 +12,7 @@ import subprocess, os.path
 from flask_httpauth import HTTPBasicAuth
 import hashlib
 import shutil
+
 auth = HTTPBasicAuth()
 TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 app=Flask(__name__)
@@ -40,16 +41,21 @@ class GitCommit:
         self.commiter=commit.committer.name
         self.date=commit.committed_datetime.strftime('%d.%M.%Y at %H:%m:%S')
         self.ago=timeago.format(tznow()-commit.committed_datetime)
+
 def repopath(user,name):
     return os.path.join('repos',user,name)
+
 def find_last(gf,pth):
     for i in gf.iter_commits():
         for a in i.diff():
             if pth in a.b_rawpath.decode():
                 return GitCommit(i)
+
 def makeUser():
     return models.user_by_uname(session['user'])[0]
+
 getUser=makeUser
+
 @app.route('/logout/')
 def logout():
     session['logged']=False
@@ -102,6 +108,7 @@ def login():
         print('AT login() Invalid PASSWORD')
         return templatize('login.html',invalid=True)
     return templatize('login.html',invalid=False)
+
 def isAdmin():
     try:
         u=makeUser()
@@ -110,6 +117,7 @@ def isAdmin():
     return u.admin
 def templatize(fn,**kwargs):
     return render_template(fn,session=session,**kwargs)
+
 @app.route('/delete/<path:repo>',methods=['GET','POST'])
 def delete(repo):
     try:
@@ -131,6 +139,7 @@ def delete(repo):
         shutil.rmtree('repos/'+repo)
         return redirect('/profile/')
     return render_template('delete.html',repo=repo)
+
 @app.route('/<string:user>/<string:name>/')
 @app.route('/<string:user>/<string:name>/<path:additional>')
 def repo(user,name,additional=''):
@@ -212,6 +221,7 @@ def repo(user,name,additional=''):
             comts.append(GitCommit(i))
             print('Analyzed '+str(i))
         return templatize('commits.html',reponame=f'{user}/{name}',base=f'/{user}/{name}/',commits=comts)
+
 @app.route('/signup/',methods=['GET','POST'])
 def signup():
     if request.method=='POST':
@@ -226,6 +236,7 @@ def signup():
             return templatize("signup.html")
         return "Success"
     return templatize("signup.html",msg="",on="")
+
 @auth.verify_password
 def ver_pw(username,pw):
     print("VERIFY")
@@ -234,6 +245,7 @@ def ver_pw(username,pw):
     if not list(us):
         return False
     return us[0].pw==sha224(pw)
+
 def new_user(uname,pw,fn,ln,email,admin=False,fromform=False):
     if admin.lower() in ['true','1']:
         admin=True
@@ -249,6 +261,7 @@ def new_user(uname,pw,fn,ln,email,admin=False,fromform=False):
     models.session.add(models.User(uname=uname,pw=sha224(pw),fname=fn,lname=ln,email=email,admin=admin))
     models.session.commit()
     os.mkdir("./repos/"+uname)
+
 @app.route('/api/addUser/',methods=['POST'])
 @auth.login_required
 def APIAddUser():
@@ -263,8 +276,6 @@ def APIAddUser():
     except Exception as e:
         return Response(f'{{status:"error",message:"{str(e)}"}}', status=422 ,mimetype="application/json")
     return Response('{status:"success",message:"User successfully created"}',mimetype="application/json")
-
-
 
 @app.route('/<path:project_name>/info/refs')
 @auth.login_required
