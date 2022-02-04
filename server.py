@@ -117,6 +117,7 @@ def isAdmin():
     except:
         return False
     return u.admin
+
 def templatize(fn,**kwargs):
     return render_template(fn,session=session,**kwargs)
 
@@ -147,7 +148,6 @@ def delete(repo):
 def repo(user,name,additional=''):
     try:
         dbrepo=models.repo_by_strid('/'.join([user,name]))[0]
-
     except:
         abort(404)
     if not dbrepo:
