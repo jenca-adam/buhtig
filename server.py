@@ -3,7 +3,7 @@ import git
 import os
 import chardet
 import timeago
-from flask import *
+from flask import Flask,session,render_template,request,redirect,abort,Response,make_response
 import datetime
 import models
 from io import BytesIO
@@ -82,6 +82,7 @@ def profile():
     print(session.get('logged'))
     if not session.get('logged'):return redirect('/login/')
     return templatize('profile.html',user=makeUser(),repos=models.repos_by_uname(session['user']))
+
 @app.route('/new/',methods=['GET','POST'])
 def new():
     if not session.get('logged'):return redirect('/login/')
