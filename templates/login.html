@@ -4,7 +4,7 @@
 <form action="/login/" method="POST">
   <p>Username:<input name="username"></input></p>
   <p>Password: <input name="pw" type="password"></input></p>
-  {%if wrong%}<p id="wrong"><b style="color:red;">Invalid username or password!!</b></p>{%endif%}
+  {%if invalid%}<p id="wrong"><b style="color:red;">Invalid username or password!!</b></p>{%endif%}
   <input type="submit"></input>
 </form>
 {%endblock%}

@@ -2,16 +2,17 @@
 import git
 import os
 import chardet
-import timeago
 from flask import Flask,session,render_template,request,redirect,abort,Response,make_response
 import datetime
-import models
 from io import BytesIO
 from dulwich.pack import PackStreamReader
 import subprocess, os.path
 from flask_httpauth import HTTPBasicAuth
 import hashlib
 import shutil
+import load_module
+import models
+load_module.load_module('verify')
 
 auth = HTTPBasicAuth()
 TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
@@ -27,7 +28,8 @@ def sha224(t):
 
 def tznow():
     return datetime.datetime.now().replace(tzinfo=TIMEZONE)
-
+def ago(delta):
+    return '' # To fix
 class GItem:
     def __init__(self,item):
         self.istree=isinstance(item,git.Tree)
@@ -40,7 +42,7 @@ class GitCommit:
         self.id=commit.hexsha
         self.commiter=commit.committer.name
         self.date=commit.committed_datetime.strftime('%d.%M.%Y at %H:%m:%S')
-        self.ago=timeago.format(tznow()-commit.committed_datetime)
+        self.ago=ago(tznow()-commit.committed_datetime)
 
 def repopath(user,name):
     return os.path.join('repos',user,name)
@@ -102,7 +104,7 @@ def login():
     if session.get('logged'):
         return redirect('/profile')
     if request.method=='POST':
-        if ver_pw(**request.form):
+        if verify.verify_password(**request.form):
             session['logged']=True
             
             session['user']=request.form['username']
@@ -226,6 +228,8 @@ def repo(user,name,additional=''):
 
 @app.route('/signup/',methods=['GET','POST'])
 def signup():
+    if not isAdmin():
+        abort(403)
     if request.method=='POST':
         f=request.form
         try:
@@ -239,20 +243,13 @@ def signup():
         return "Success"
     return templatize("signup.html",msg="",on="")
 
-@auth.verify_password
-def ver_pw(username,pw):
-    print("VERIFY")
-    print(username,pw)
-    us=models.user_by_uname(username) 
-    if not list(us):
-        return False
-    return us[0].pw==sha224(pw)
 
-def new_user(uname,pw,fn,ln,email,admin=False,fromform=False):
-    if admin.lower() in ['true','1']:
-        admin=True
-    else:
-        admin=False
+def new_user(uname,fn,ln,email,pw='',admin=False,fromform=False):
+    if isinstance(admin,str):
+        if admin.lower() in ['true','1']:
+            admin=True
+        else:
+            admin=False
     if admin and fromform:
         raise Exception
     if  tuple(models.user_by_uname(uname)):
@@ -278,6 +275,38 @@ def APIAddUser():
     except Exception as e:
         return Response(f'{{status:"error",message:"{str(e)}"}}', status=422 ,mimetype="application/json")
     return Response('{status:"success",message:"User successfully created"}',mimetype="application/json")
+
+@app.route('/api/setPassword/',methods=['POST'])
+@auth.login_required
+def SetPassword():
+    if not models.user_by_uname(request.authorization.username)[0].admin:
+        abort(403)
+
+    c=models.user_by_uname(request.form['uname'])
+    pw=request.form['pw']
+    if not list(c):
+        return Response('{status:"error",message:"No such user"}',mimetype="application/json",status=422)
+    u=c[0]
+    u.pw=sha224(pw)
+    models.session.commit()
+    return Response('{status:"success",mesage:"Password set"}',mimetype="application/json")
+@app.route('/api/changeAdmin/',methods=['POST'])
+@auth.login_required
+def changeAdmin():
+    if not models.user_by_uname(request.authorization.username)[0].admin:
+        abort(403)
+    c=models.user_by_uname(request.form['uname'])
+    try:
+        toset=int(request.form['admin'])
+    except ValueError:
+        return Response('{status:"error",message:"Admin argument must be either 0 or 1"}',mimetype="application/json",status=422)
+
+    if not list(c):
+        return Response('{status:"error",message:"No such user"}',mimetype="application/json",status=422)
+    u=c[0]
+    u.admin=bool(toset)
+    models.session.commit()
+    return Response('{status:"success",mesage:"Password set"}',mimetype="application/json")
 
 @app.route('/<path:project_name>/info/refs')
 @auth.login_required
@@ -336,7 +365,9 @@ def git_receive_pack(project_name):
     res.headers['Content-Type'] = 'application/x-git-receive-pack-result'
     p.wait()
     return res
-
+@app.route('/')
+def index():
+    return redirect('/profile/')
 @app.route('/<path:project_name>/git-upload-pack', methods=('POST',))
 @auth.login_required
 def git_upload_pack(project_name):
@@ -353,6 +384,6 @@ def git_upload_pack(project_name):
     res.headers['Content-Type'] = 'application/x-git-upload-pack-result'
     p.wait()
     return res
-
+auth.verify_password(verify.verify_password)
 if __name__=='__main__':        
     app.run(debug=True,port=5000)    
